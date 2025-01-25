@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #F9FAFB; /* Light background */
+            color: #1F2937; /* Dark text */
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: #4F46E5; /* Rich royal blue */
+            color: #FFFFFF;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        header a {
+            text-decoration: none;
+            color: #FFFFFF;
+            padding: 10px 18px;
+            background-color: #4338CA;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        header a:hover {
+            background-color: #3730A3;
+            transform: scale(1.05);
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #FFFFFF;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .task.completed {
+            background-color: #E5E7EB; /* Grayish background for completed tasks */
+            color: #6B7280; /* Dimmed text */
+            text-decoration: line-through; /* Strikethrough for completed tasks */
+        }
+
+        .task:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1E3A8A; /* Rich blue */
+        }
+
+        .due {
+            font-size: 16px;
+            color: #6B7280; /* Gray */
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            font-size: 14px;
+            font-weight: bold;
+            color: #FFFFFF;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background-color: #3B82F6; /* Uniform blue tag color */
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .remove {
+            background-color: #EF4444;
+            color: #FFFFFF;
+        }
+
+        .remove:hover {
+            background-color: #DC2626;
+        }
+
+        .complete {
+            background-color: #10B981; /* Green button for marking complete */
+            color: #FFFFFF;
+        }
+
+        .complete:hover {
+            background-color: #059669;
+        }
+
+        .add-task-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            background-color: #FFFFFF;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .add-task-form input,
+        .add-task-form button {
+            padding: 12px 16px;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            font-size: 16px;
+        }
+
+        .add-task-form button {
+            background-color: #4F46E5; /* Rich royal blue */
+            color: #FFFFFF;
+        }
+
+        .add-task-form button:hover {
+            background-color: #4338CA;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Task Manager</h1>
+        <a href="#" onclick="showPage('add')">Add Tasks</a>
+        <a href="#" onclick="showPage('tasks')">View Tasks</a>
+    </header>
+
+    <div id="tasks-page" style="display: none;">
+        <h2>Tasks</h2>
+        <div class="container"></div>
+    </div>
+
+    <div id="add-page" style="display: none;">
+        <h2>Add New Task</h2>
+        <div class="add-task-form">
+            <input type="text" id="taskTitle" placeholder="Task Title" required />
+            <input type="date" id="taskDueDate" required />
+            <input type="text" id="taskTags" placeholder="Tags (comma separated)" />
+            <button onclick="addTask()">Add Task</button>
+        </div>
+    </div>
+
+    <script>
+        const LOCAL_STORAGE_KEY = "tasks";
+        let tasks = []; // Initialize tasks array
+    
+        function saveToLocalStorage() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasks));
+        }
+    
+        function loadFromLocalStorage() {
+            const storedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedTasks) {
+                tasks = JSON.parse(storedTasks);
+                renderTasks();
+            }
+        }
+    
+        function renderTasks() {
+            const container = document.querySelector(".container");
+            container.innerHTML = ""; // Clear current tasks
+            tasks.forEach((task, index) => {
+                const taskElement = createTaskElement(task, index);
+                container.appendChild(taskElement);
+            });
+        }
+    
+        function createTaskElement(task, index) {
+            const taskDiv = document.createElement("div");
+            taskDiv.className = `task ${task.completed ? "completed" : ""}`;
+    
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "content";
+    
+            const titleDiv = document.createElement("div");
+            titleDiv.className = "title";
+            titleDiv.textContent = task.title;
+    
+            const dueDiv = document.createElement("div");
+            dueDiv.className = "due";
+            dueDiv.textContent = `Date: ${task.dueDate}`;
+    
+            const tagsDiv = document.createElement("div");
+            tagsDiv.className = "tags";
+            task.tags.forEach(tag => {
+                const tagElement = document.createElement("div");
+                tagElement.className = "tag";
+                tagElement.textContent = tag;
+                tagsDiv.appendChild(tagElement);
+            });
+    
+            contentDiv.append(titleDiv, dueDiv, tagsDiv);
+    
+            const actionsDiv = document.createElement("div");
+            actionsDiv.className = "actions";
+    
+            const completeButton = document.createElement("button");
+            completeButton.className = "complete";
+            completeButton.textContent = task.completed ? "Undo" : "Mark Complete";
+            completeButton.onclick = () => {
+                task.completed = !task.completed;
+                saveToLocalStorage();
+                renderTasks();
+            };
+    
+            const removeButton = document.createElement("button");
+            removeButton.className = "remove";
+            removeButton.textContent = "Remove";
+            removeButton.onclick = () => {
+                tasks.splice(index, 1);
+                saveToLocalStorage();
+                renderTasks();
+            };
+    
+            actionsDiv.append(completeButton, removeButton);
+    
+            taskDiv.append(contentDiv, actionsDiv);
+    
+            return taskDiv;
+        }
+    
+        function addTask() {
+            const title = document.getElementById("taskTitle").value;
+            const dueDate = document.getElementById("taskDueDate").value;
+            const tags = document.getElementById("taskTags").value.split(",").map(tag => tag.trim());
+    
+            if (title && dueDate) {
+                tasks.push({ title, dueDate, tags, completed: false });
+                saveToLocalStorage();
+                renderTasks();
+                showPage("tasks");
+    
+                document.getElementById("taskTitle").value = "";
+                document.getElementById("taskDueDate").value = "";
+                document.getElementById("taskTags").value = "";
+            } else {
+                alert("Please fill in all fields.");
+            }
+        }
+    
+        function showPage(page) {
+            document.getElementById("tasks-page").style.display = page === "tasks" ? "block" : "none";
+            document.getElementById("add-page").style.display = page === "add" ? "block" : "none";
+        }
+    
+        // Load tasks on page load
+        loadFromLocalStorage();
+        showPage("tasks");
+    </script>
+    
+</body>
+</html>
